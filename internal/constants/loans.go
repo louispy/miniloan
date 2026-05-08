@@ -1,0 +1,11 @@
+package constants
+
+const LOAN_WEEKS = 50
+
+const (
+	_ = iota
+	LOAN_STATUS_REQUESTED
+	LOAN_STATUS_APPROVED
+	LOAN_STATUS_DISBURSED
+	LOAN_STATUS_FULLY_PAID
+)

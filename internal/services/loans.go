@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"log"
+	"time"
 
-	"github.com/google/uuid"
+	"github.com/louispy/miniloan/internal/constants"
 	"github.com/louispy/miniloan/internal/domain/models"
 	"github.com/louispy/miniloan/internal/domain/repositories"
 )
@@ -22,6 +24,23 @@ func NewLoanService(opts LoanServiceOpts) LoanService {
 	}
 }
 
-func (s loanService) Create(ctx context.Context, loan models.Loan) (uuid.UUID, error) {
-	return uuid.Nil, nil
+func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*CreateLoanOutput, error) {
+	now := time.Now()
+	loan := models.Loan{
+		Principal:    loanInput.Principal,
+		InterestRate: loanInput.InterestRate,
+		Weeks:        constants.LOAN_WEEKS,
+		Status:       constants.LOAN_STATUS_APPROVED,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	loanId, err := s.loansRepo.Create(ctx, loan)
+	if err != nil {
+		log.Printf("Error creating loan: %v\n", err.Error())
+		return nil, err
+	}
+
+	return &CreateLoanOutput{
+		Id: loanId.String(),
+	}, nil
 }

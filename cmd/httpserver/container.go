@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/louispy/miniloan/internal/api"
@@ -30,8 +29,6 @@ func NewConfig() *Config {
 }
 func NewContainer() *Container {
 	cfg := NewConfig()
-
-	fmt.Println(cfg)
 
 	db, err := database.New(context.Background(), cfg.DB)
 	if err != nil {

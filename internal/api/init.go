@@ -24,12 +24,13 @@ func NewAPI(o Opts) *API {
 		router:      &r,
 	}
 }
-func (r *API) GetRouter() *mux.Router {
-	return r.router
+func (a *API) GetRouter() *mux.Router {
+	return a.router
 }
 
-func (r *API) Register() {
-	r.router.HandleFunc("/hello", func(rw http.ResponseWriter, r *http.Request) {
+func (a *API) Register() {
+	a.router.HandleFunc("/hello", func(rw http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(rw, "Hello World")
 	})
+	a.router.Methods(http.MethodPost).Path("/loans").HandlerFunc(a.CreateLoanHandler)
 }
