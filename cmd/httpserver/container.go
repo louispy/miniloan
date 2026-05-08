@@ -1,10 +1,50 @@
 package main
 
+import (
+	"context"
+	"fmt"
+
+	"github.com/caarlos0/env/v11"
+	"github.com/louispy/miniloan/internal/api"
+	appAPI "github.com/louispy/miniloan/internal/api"
+	"github.com/louispy/miniloan/internal/database"
+	"github.com/louispy/miniloan/internal/domain/repositories"
+	"github.com/louispy/miniloan/internal/services"
+)
+
 type Container struct {
+	API *api.API
 }
 
-type Opts struct{}
+type Config struct {
+	DB database.Config `envPrefix:"DB_"`
+}
 
-func NewContainer(o Opts) *Container {
-	return &Container{}
+func NewConfig() *Config {
+	cfg := Config{}
+	if err := env.Parse(&cfg); err != nil {
+		panic("cannot parse config: " + err.Error())
+	}
+
+	return &cfg
+}
+func NewContainer() *Container {
+	cfg := NewConfig()
+
+	fmt.Println(cfg)
+
+	db, err := database.New(context.Background(), cfg.DB)
+	if err != nil {
+		panic("database cannot be initialized: " + err.Error())
+	}
+	loanRepo := repositories.NewLoansRepository(repositories.LoanRepoOpts{DB: db})
+	loanService := services.NewLoanService(services.LoanServiceOpts{LoansRepo: loanRepo})
+	api := appAPI.NewAPI(appAPI.Opts{
+		LoanService: loanService,
+	})
+	api.Register()
+
+	return &Container{
+		API: api,
+	}
 }

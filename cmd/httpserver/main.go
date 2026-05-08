@@ -9,20 +9,21 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/louispy/miniloan/internal/api"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	r := api.NewAPIRouter()
-	r.Register()
+	_ = godotenv.Load()
+	port := os.Getenv("PORT")
 
-	port := ":8989"
+	appContainer := NewContainer()
 
-	srv := &http.Server{Addr: port, Handler: r.GetRouter()}
+	srv := &http.Server{Addr: port, Handler: appContainer.API.GetRouter()}
 	go func() {
 		log.Println("Listening on port", port)
 		log.Fatal(srv.ListenAndServe())
 	}()
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	defer stop()
