@@ -1,6 +1,5 @@
 CREATE TABLE loans (
     id uuid NOT NULL PRIMARY KEY,
-    borrower_id UUID NOT NULL,
     principal BIGINT NOT NULL,
     interest_rate DECIMAL(18,2) NOT NULL,
     weeks INT NOT NULL,

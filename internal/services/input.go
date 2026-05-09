@@ -6,9 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type CreateLoanInput struct {
-	BorrowerId uuid.UUID
-}
+type CreateLoanInput struct{}
 
 type GetOutstandingInput struct {
 	LoanId uuid.UUID

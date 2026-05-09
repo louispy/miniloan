@@ -16,8 +16,18 @@ func (a API) CreateLoanHandler(rw http.ResponseWriter, r *http.Request) {
 		WriteJSONResponse(rw, 400, nil, nil, err)
 		return
 	}
+	installments := make([]CreateLoanResponseInstallment, 0, len(output.Installments))
+	for _, ins := range output.Installments {
+		installments = append(installments, CreateLoanResponseInstallment{
+			Week:    ins.Week,
+			Amount:  ins.Amount,
+			Status:  ins.Status,
+			DueDate: ins.DueDate,
+		})
+	}
 	resp := CreateLoanResponse{
-		Id: output.Id,
+		Id:           output.Id,
+		Installments: installments,
 	}
 	message := "Successfully created a new loan request"
 

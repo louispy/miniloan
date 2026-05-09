@@ -13,10 +13,6 @@ type LoansRepository interface {
 	GetById(ctx context.Context, loanId uuid.UUID) (*models.Loan, error)
 }
 
-type BorrowersRepository interface {
-	Create(ctx context.Context, borrower models.Borrower) (uuid.UUID, error)
-}
-
 type InstallmentsRepository interface {
 	CreateMany(ctx context.Context, installments []models.Installment) error
 	GetSumByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) (int64, error)

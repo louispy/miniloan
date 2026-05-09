@@ -124,7 +124,8 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 		})
 	}
 	return &CreateLoanOutput{
-		Id: loanId.String(),
+		Id:           loanId.String(),
+		Installments: outputInstallments,
 	}, nil
 
 }

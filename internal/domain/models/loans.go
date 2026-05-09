@@ -8,7 +8,6 @@ import (
 
 type Loan struct {
 	Id           uuid.UUID `db:"id"`
-	BorrowerId   uuid.UUID `db:"borrower_id"`
 	Principal    int64     `db:"principal"`
 	InterestRate float64   `db:"interest_rate"`
 	Weeks        int64     `db:"weeks"`

@@ -30,7 +30,6 @@ const insertLoanQuery = `
 	INSERT INTO
 		loans (
 			id,
-			borrower_id,
 			principal,
 			interest_rate,
 			weeks,
@@ -41,7 +40,7 @@ const insertLoanQuery = `
 			updated_at
 		)
 	VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 func (r defaultLoansRepository) Create(ctx context.Context, loan models.Loan) (id uuid.UUID, err error) {
@@ -50,7 +49,6 @@ func (r defaultLoansRepository) Create(ctx context.Context, loan models.Loan) (i
 	}
 	args := []any{
 		loan.Id,
-		loan.BorrowerId,
 		loan.Principal,
 		loan.InterestRate,
 		loan.Weeks,
@@ -74,7 +72,6 @@ func (r defaultLoansRepository) Create(ctx context.Context, loan models.Loan) (i
 const getLoanQuery = `
 	SELECT
 		id,
-		borrower_id,
 		principal,
 		interest_rate,
 		weeks,
