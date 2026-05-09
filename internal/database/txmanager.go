@@ -16,23 +16,25 @@ type TxManager interface {
 }
 
 type defaultTxManager struct {
-	db sqlx.DB
+	db *sqlx.DB
 }
 
 type TxManagerOpts struct {
-	DB sqlx.DB
+	DB *sqlx.DB
 }
 
-func NewTxManager() TxManager {
-	return &defaultTxManager{}
+func NewTxManager(opts TxManagerOpts) TxManager {
+	return &defaultTxManager{
+		db: opts.DB,
+	}
 }
 
 func (m defaultTxManager) Begin(ctx context.Context) (context.Context, error) {
-	tx, err := m.db.Begin()
+	tx, err := m.db.Beginx()
 	if err != nil {
 		return nil, err
 	}
-	ctx = context.WithValue(ctx, constants.SqlxTxCtx, &tx)
+	ctx = context.WithValue(ctx, constants.SqlxTxCtx, tx)
 
 	return ctx, nil
 }

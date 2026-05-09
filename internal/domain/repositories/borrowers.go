@@ -16,7 +16,7 @@ type BorrowerRepoOpts struct {
 	DB *sqlx.DB
 }
 
-func NewBorrowersRepository(opts LoanRepoOpts) BorrowersRepository {
+func NewBorrowersRepository(opts BorrowerRepoOpts) BorrowersRepository {
 	return &defaultBorrowersRepository{
 		db: opts.DB,
 	}

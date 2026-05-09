@@ -47,12 +47,13 @@ const insertInstallmentQuery = `
 func (r defaultInstallmentsRepository) CreateMany(ctx context.Context, installments []models.Installment) (err error) {
 	args := []any{}
 	query := fmt.Sprintf(insertInstallmentQuery, strings.Join(installmentCols, ","))
+	values := []string{}
 	for i, installment := range installments {
 		placeholders := []string{}
 		for j := range installmentCols {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", i*len(installmentCols)+j))
+			placeholders = append(placeholders, fmt.Sprintf("$%d", i*len(installmentCols)+j+1))
 		}
-		query += fmt.Sprintf("\n(%s)", strings.Join(placeholders, ","))
+		values = append(values, fmt.Sprintf("\n(%s)", strings.Join(placeholders, ",")))
 		args = append(args, []any{
 			installment.Id,
 			installment.LoanId,
@@ -67,6 +68,7 @@ func (r defaultInstallmentsRepository) CreateMany(ctx context.Context, installme
 			installment.UpdatedAt,
 		}...)
 	}
+	query += strings.Join(values, ",")
 	tx := utils.SqlxTxFromCtx(ctx)
 	if tx != nil {
 		_, err = tx.ExecContext(ctx, query, args...)

@@ -1,6 +1,6 @@
 package constants
 
-const LOAN_WEEKS = 50
+const LOAN_WEEKS = 5
 const LOAN_INTEREST_RATE = 0.1
 
 const (

@@ -56,7 +56,7 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 	total := principal + (principal * interestRate)
 	repaymentAmountPerWeek := total / float64(weeks)
 
-	// ASSUME rounding to nearest whole integer
+	// Assume rounding to nearest whole integer
 	repaymentAmountPerWeekRounded := math.Round(repaymentAmountPerWeek)
 
 	// Assume that the final week repayment amount should fill the rounding gap
@@ -78,7 +78,7 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 			DueDate:   dueDate,
 			Week:      int(i + 1), // assuming week is 1-indexed
 			Status:    constants.INSTALLMENT_STATUS_UNPAID,
-			IsFinal:   false,
+			IsFinal:   i == weeks-1,
 			CreatedAt: now,
 			UpdatedAt: now,
 		})
@@ -89,14 +89,11 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 		log.Printf("error starting transaction: %s", err.Error())
 		return nil, err
 	}
-	defer func(cause error) {
-		if cause == nil {
-			return
+	defer func() {
+		if err != nil {
+			s.txManager.Rollback(txCtx)
 		}
-		if err = s.txManager.Rollback(txCtx); err != nil {
-			log.Printf("error rolling back transaction: %s", err.Error())
-		}
-	}(err)
+	}()
 
 	_, err = s.loansRepo.Create(txCtx, loan)
 	if err != nil {

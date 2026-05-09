@@ -35,7 +35,13 @@ func NewContainer() *Container {
 		panic("database cannot be initialized: " + err.Error())
 	}
 	loanRepo := repositories.NewLoansRepository(repositories.LoanRepoOpts{DB: db})
-	loanService := services.NewLoanService(services.LoanServiceOpts{LoansRepo: loanRepo})
+	installmentRepo := repositories.NewInstallmentsRepository(repositories.InstallmentRepoOpts{DB: db})
+	txManager := database.NewTxManager(database.TxManagerOpts{DB: db})
+	loanService := services.NewLoanService(services.LoanServiceOpts{
+		LoansRepo:        loanRepo,
+		InstallmentsRepo: installmentRepo,
+		TxManager:        txManager,
+	})
 	api := appAPI.NewAPI(appAPI.Opts{
 		LoanService: loanService,
 	})
