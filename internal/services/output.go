@@ -6,9 +6,10 @@ type CreateLoanOutputInstallment struct {
 	Status  int
 	DueDate string
 	LoanId  string
-	IsFinal string
+	IsFinal bool
 }
 
 type CreateLoanOutput struct {
-	Id string
+	Id           string
+	Installments []CreateLoanOutputInstallment
 }

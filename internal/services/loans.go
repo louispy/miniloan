@@ -112,6 +112,17 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 		return nil, err
 	}
 
+	outputInstallments := []CreateLoanOutputInstallment{}
+	for _, installment := range installments {
+		outputInstallments = append(outputInstallments, CreateLoanOutputInstallment{
+			Week:    installment.Week,
+			Amount:  installment.Amount,
+			Status:  installment.Status,
+			DueDate: installment.DueDate.String(),
+			LoanId:  installment.LoanId.String(),
+			IsFinal: installment.IsFinal,
+		})
+	}
 	return &CreateLoanOutput{
 		Id: loanId.String(),
 	}, nil
