@@ -431,3 +431,257 @@ func TestLoanService_IsDeliquent(t *testing.T) {
 		})
 	}
 }
+
+func TestLoanService_MakePayment(t *testing.T) {
+	err := errors.New("oops")
+
+	loanId := uuid.New()
+	installmentId := uuid.New()
+	otherLoanId := uuid.New()
+	const amount int64 = 110000
+
+	okLoanGet := func() (*models.Loan, error) { return &models.Loan{Id: loanId}, nil }
+	okBegin := func() (context.Context, error) { return context.Background(), nil }
+	okCommit := func() error { return nil }
+	okRollback := func() error { return nil }
+	okPaymentCreate := func() (uuid.UUID, error) { return uuid.New(), nil }
+	okUpdatePayment := func() error { return nil }
+
+	matchingInstallment := func() (*models.Installment, error) {
+		return &models.Installment{
+			Id:     installmentId,
+			LoanId: loanId,
+			Amount: amount,
+			Status: constants.INSTALLMENT_STATUS_UNPAID,
+		}, nil
+	}
+
+	tests := []struct {
+		name             string
+		input            MakePaymentInput
+		loansRepo        repo_mocks.MockLoansRepo
+		installmentsRepo repo_mocks.MockInstallmentRepo
+		paymentsRepo     repo_mocks.MockPaymentsRepo
+		txManager        database_mocks.MockTxManager
+		wantErr          error
+	}{
+		{
+			name:  "ok",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: matchingInstallment,
+				UpdatePaymentFn:    okUpdatePayment,
+			},
+			paymentsRepo: repo_mocks.MockPaymentsRepo{CreateFn: okPaymentCreate},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:  okBegin,
+				CommitFn: okCommit,
+			},
+		},
+		{
+			name:  "loan not found",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: func() (*models.Loan, error) { return nil, custerr.ErrDataNotFound },
+			},
+			wantErr: custerr.ErrDataNotFound,
+		},
+		{
+			name:  "loan repo fails",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: func() (*models.Loan, error) { return nil, err },
+			},
+			wantErr: err,
+		},
+		{
+			name:  "begin fails",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			txManager: database_mocks.MockTxManager{
+				BeginFn: func() (context.Context, error) { return nil, err },
+			},
+			wantErr: err,
+		},
+		{
+			name:  "installment not found",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: func() (*models.Installment, error) { return nil, custerr.ErrDataNotFound },
+			},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:    okBegin,
+				RollbackFn: okRollback,
+			},
+			wantErr: custerr.ErrDataNotFound,
+		},
+		{
+			name:  "installment repo fails",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: func() (*models.Installment, error) { return nil, err },
+			},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:    okBegin,
+				RollbackFn: okRollback,
+			},
+			wantErr: err,
+		},
+		{
+			name:  "loan id mismatch",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: func() (*models.Installment, error) {
+					return &models.Installment{
+						Id:     installmentId,
+						LoanId: otherLoanId,
+						Amount: amount,
+						Status: constants.INSTALLMENT_STATUS_UNPAID,
+					}, nil
+				},
+			},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:    okBegin,
+				RollbackFn: okRollback,
+			},
+			wantErr: errors.New("invalid installment"),
+		},
+		{
+			name:  "already paid",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: func() (*models.Installment, error) {
+					return &models.Installment{
+						Id:     installmentId,
+						LoanId: loanId,
+						Amount: amount,
+						Status: constants.INSTALLMENT_STATUS_PAID,
+					}, nil
+				},
+			},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:    okBegin,
+				RollbackFn: okRollback,
+			},
+			wantErr: errors.New("invalid installment status"),
+		},
+		{
+			name:  "amount mismatch",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount + 1},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: matchingInstallment,
+			},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:    okBegin,
+				RollbackFn: okRollback,
+			},
+			wantErr: errors.New("invalid payment amount"),
+		},
+		{
+			name:  "payment create fails",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: matchingInstallment,
+			},
+			paymentsRepo: repo_mocks.MockPaymentsRepo{
+				CreateFn: func() (uuid.UUID, error) { return uuid.Nil, err },
+			},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:    okBegin,
+				RollbackFn: okRollback,
+			},
+			wantErr: err,
+		},
+		{
+			name:  "update installment fails",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: matchingInstallment,
+				UpdatePaymentFn:    func() error { return err },
+			},
+			paymentsRepo: repo_mocks.MockPaymentsRepo{CreateFn: okPaymentCreate},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:    okBegin,
+				RollbackFn: okRollback,
+			},
+			wantErr: err,
+		},
+		{
+			name:  "commit fails",
+			input: MakePaymentInput{LoanId: loanId, InstallmentId: installmentId, Amount: amount},
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByIdForUpdateFn: matchingInstallment,
+				UpdatePaymentFn:    okUpdatePayment,
+			},
+			paymentsRepo: repo_mocks.MockPaymentsRepo{CreateFn: okPaymentCreate},
+			txManager: database_mocks.MockTxManager{
+				BeginFn:    okBegin,
+				CommitFn:   func() error { return err },
+				RollbackFn: okRollback,
+			},
+			wantErr: err,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := NewLoanService(LoanServiceOpts{
+				LoansRepo:        tt.loansRepo,
+				InstallmentsRepo: tt.installmentsRepo,
+				PaymentsRepo:     tt.paymentsRepo,
+				TxManager:        tt.txManager,
+				BusinessTZ:       time.UTC,
+			})
+
+			out, err := svc.MakePayment(context.Background(), tt.input)
+
+			if tt.wantErr != nil {
+				if err == nil || err.Error() != tt.wantErr.Error() {
+					t.Fatalf("err = %v, want %v", err, tt.wantErr)
+				}
+				if out != nil {
+					t.Fatalf("expected nil output on error, got %+v", out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected err: %v", err)
+			}
+			if out == nil {
+				t.Fatal("expected output, got nil")
+			}
+			if out.InstallmentId != installmentId.String() {
+				t.Errorf("InstallmentId = %s, want %s", out.InstallmentId, installmentId.String())
+			}
+		})
+	}
+}
