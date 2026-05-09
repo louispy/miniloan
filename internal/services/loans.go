@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/louispy/miniloan/internal/constants"
+	"github.com/louispy/miniloan/internal/custerr"
 	"github.com/louispy/miniloan/internal/database"
 	"github.com/louispy/miniloan/internal/domain/models"
 	"github.com/louispy/miniloan/internal/domain/repositories"
@@ -117,4 +118,28 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 		Id: loanId.String(),
 	}, nil
 
+}
+
+func (s loanService) GetOutstanding(ctx context.Context, inp GetOutstandingInput) (*GetOutstandingOutput, error) {
+	_, err := s.loansRepo.GetById(ctx, inp.LoanId)
+	if err != nil {
+		if err != custerr.ErrDataNotFound {
+			log.Printf("Error retrieving Loan: %v\n", err.Error())
+		}
+		return nil, err
+	}
+	amount, err := s.installmentsRepo.GetSumByLoanIdAndStatus(ctx, inp.LoanId, constants.INSTALLMENT_STATUS_UNPAID)
+	if err != nil {
+		log.Printf("Error retrieving outstanding sum: %v\n", err.Error())
+		return nil, err
+	}
+	return &GetOutstandingOutput{Amount: amount}, nil
+}
+
+func (s loanService) IsDeliquent(ctx context.Context, inp IsDeliquentInput) (*IsDeliquentOutput, error) {
+	return nil, nil
+}
+
+func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*MakePaymentOutput, error) {
+	return nil, nil
 }

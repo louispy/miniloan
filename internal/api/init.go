@@ -33,4 +33,5 @@ func (a *API) Register() {
 		fmt.Fprintf(rw, "Hello World")
 	})
 	a.router.Methods(http.MethodPost).Path("/loans").HandlerFunc(a.CreateLoanHandler)
+	a.router.Methods(http.MethodGet).Path("/loans/{id}/outstanding").HandlerFunc(a.GetOutstanding)
 }

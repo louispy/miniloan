@@ -9,6 +9,7 @@ import (
 
 type LoansRepository interface {
 	Create(ctx context.Context, loan models.Loan) (uuid.UUID, error)
+	GetById(ctx context.Context, loanId uuid.UUID) (*models.Loan, error)
 }
 
 type BorrowersRepository interface {
@@ -17,4 +18,5 @@ type BorrowersRepository interface {
 
 type InstallmentsRepository interface {
 	CreateMany(ctx context.Context, installments []models.Installment) error
+	GetSumByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) (int64, error)
 }

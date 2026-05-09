@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/louispy/miniloan/internal/domain/models"
 	"github.com/louispy/miniloan/internal/utils"
@@ -77,4 +78,38 @@ func (r defaultInstallmentsRepository) CreateMany(ctx context.Context, installme
 	}
 
 	return err
+}
+
+const getSumByLoanIdAndStatusQuery = `
+	SELECT
+		COALESCE(SUM(amount), 0)
+	FROM
+		installments
+	WHERE
+		loan_id = $1
+		AND status = $2
+`
+
+func (r defaultInstallmentsRepository) GetSumByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) (int64, error) {
+	var (
+		total int64
+		err   error
+	)
+
+	args := []any{
+		loanId,
+		status,
+	}
+	tx := utils.SqlxTxFromCtx(ctx)
+	if tx != nil {
+		err = tx.GetContext(ctx, &total, getSumByLoanIdAndStatusQuery, args...)
+	} else {
+		err = r.db.GetContext(ctx, &total, getSumByLoanIdAndStatusQuery, args...)
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
 }

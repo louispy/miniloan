@@ -31,3 +31,7 @@ func WriteJSONResponse(rw http.ResponseWriter, statusCode int, body any, message
 type CreateLoanResponse struct {
 	Id string `json:"id"`
 }
+
+type GetOutstandingResponse struct {
+	Amount int64 `json:"amount"`
+}
