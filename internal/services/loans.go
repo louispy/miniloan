@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"log"
 	"math"
 	"time"
@@ -17,6 +18,7 @@ import (
 type loanService struct {
 	loansRepo        repositories.LoansRepository
 	installmentsRepo repositories.InstallmentsRepository
+	paymentsRepo     repositories.PaymentsRepository
 	txManager        database.TxManager
 	weeks            int
 	interestRate     float64
@@ -27,6 +29,7 @@ type loanService struct {
 type LoanServiceOpts struct {
 	LoansRepo        repositories.LoansRepository
 	InstallmentsRepo repositories.InstallmentsRepository
+	PaymentsRepo     repositories.PaymentsRepository
 	TxManager        database.TxManager
 	BusinessTZ       *time.Location
 }
@@ -35,6 +38,7 @@ func NewLoanService(opts LoanServiceOpts) LoanService {
 	return &loanService{
 		loansRepo:        opts.LoansRepo,
 		installmentsRepo: opts.InstallmentsRepo,
+		paymentsRepo:     opts.PaymentsRepo,
 		txManager:        opts.TxManager,
 		weeks:            constants.LOAN_WEEKS,
 		interestRate:     constants.LOAN_INTEREST_RATE,
@@ -164,5 +168,75 @@ func (s loanService) IsDeliquent(ctx context.Context, inp IsDeliquentInput) (*Is
 }
 
 func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*MakePaymentOutput, error) {
-	return nil, nil
+	_, err := s.loansRepo.GetById(ctx, inp.LoanId)
+	if err != nil {
+		if err != custerr.ErrDataNotFound {
+			log.Printf("Error retrieving Loan: %v\n", err.Error())
+		}
+		return nil, err
+	}
+
+	// InstallmentId not in task spec.
+	// If InstallmentId is not provided, defaults to getting earliest unpaid installment
+	var installment *models.Installment
+	if inp.InstallmentId == uuid.Nil {
+		installment, err = s.installmentsRepo.GetFirstByLoanIdAndStatus(ctx, inp.LoanId, constants.INSTALLMENT_STATUS_UNPAID)
+	} else {
+		installment, err = s.installmentsRepo.GetById(ctx, inp.InstallmentId)
+	}
+
+	if err != nil {
+		if err != custerr.ErrDataNotFound {
+			log.Printf("Error retrieving Loan: %v\n", err.Error())
+		}
+		return nil, err
+	}
+
+	if installment == nil {
+		return nil, custerr.ErrDataNotFound
+	}
+
+	if installment.Status != constants.INSTALLMENT_STATUS_UNPAID {
+		return nil, errors.New("invalid installment status")
+	}
+
+	if inp.Amount != installment.Amount {
+		return nil, errors.New("invalid payment amount")
+	}
+
+	txCtx, err := s.txManager.Begin(ctx)
+	if err != nil {
+		log.Printf("error starting transaction: %s", err.Error())
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			s.txManager.Rollback(txCtx)
+		}
+	}()
+
+	now := time.Now().UTC()
+	_, err = s.paymentsRepo.Create(txCtx, models.Payment{
+		Id:            uuid.New(),
+		Amount:        inp.Amount,
+		InstallmentId: installment.Id,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	})
+	if err != nil {
+		log.Printf("Error creating payment: %v\n", err.Error())
+		return nil, err
+	}
+	err = s.installmentsRepo.UpdatePayment(txCtx, installment.Id, now)
+	if err != nil {
+		log.Printf("Error updating installment: %v\n", err.Error())
+		return nil, err
+	}
+
+	if err := s.txManager.Commit(txCtx); err != nil {
+		log.Printf("Error committing transaction: %v\n", err.Error())
+		return nil, err
+	}
+
+	return &MakePaymentOutput{InstallmentId: installment.Id.String()}, nil
 }

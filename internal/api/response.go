@@ -39,3 +39,7 @@ type GetOutstandingResponse struct {
 type IsDeliquentResponse struct {
 	IsDeliquent bool `json:"is_deliquent"`
 }
+
+type MakePaymentResponse struct {
+	InstallmentId string `json:"installment_id"`
+}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -66,6 +67,53 @@ func (a API) IsDeliquent(rw http.ResponseWriter, r *http.Request) {
 		IsDeliquent: output.IsDeliquent,
 	}
 	message := "Successfully get IsDeliquent value"
+
+	WriteJSONResponse(rw, 200, resp, &message, nil)
+}
+
+func (a API) MakePayment(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	uuId, err := uuid.Parse(id)
+	if err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(rw, r.Body, 1<<20)
+	req := MakePaymentRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
+	}
+
+	var installmentId uuid.UUID
+	if req.InstallmentId != "" {
+		installmentId, err = uuid.Parse(req.InstallmentId)
+		if err != nil {
+			WriteJSONResponse(rw, 400, nil, nil, err)
+			return
+		}
+	}
+
+	output, err := a.loanService.MakePayment(r.Context(), services.MakePaymentInput{
+		LoanId:        uuId,
+		Amount:        req.Amount,
+		InstallmentId: installmentId,
+	})
+	if err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
+	}
+	resp := MakePaymentResponse{
+		InstallmentId: output.InstallmentId,
+	}
+	message := "Successfully MakePayment"
 
 	WriteJSONResponse(rw, 200, resp, &message, nil)
 }

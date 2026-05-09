@@ -91,7 +91,7 @@ const getLoanQuery = `
 
 func (r defaultLoansRepository) GetById(ctx context.Context, loanId uuid.UUID) (*models.Loan, error) {
 	var err error
-	query := fmt.Sprintf(getLoanQuery, "id = $1")
+	query := fmt.Sprintf(getLoanQuery, "id = $1 LIMIT 1")
 	loan := models.Loan{}
 	tx := utils.SqlxTxFromCtx(ctx)
 	args := []any{

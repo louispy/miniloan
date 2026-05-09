@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/louispy/miniloan/internal/constants"
+	"github.com/louispy/miniloan/internal/custerr"
 	"github.com/louispy/miniloan/internal/domain/models"
 	"github.com/louispy/miniloan/internal/utils"
 )
@@ -150,4 +152,101 @@ func (r defaultInstallmentsRepository) GetLateCountByLoanId(ctx context.Context,
 	}
 
 	return count, nil
+}
+
+const getInstallmentQuery = `
+	SELECT
+		%s
+	FROM
+		installments
+	WHERE
+		%s
+`
+
+func (r defaultInstallmentsRepository) GetFirstByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) (*models.Installment, error) {
+	var err error
+	query := fmt.Sprintf(
+		getInstallmentQuery,
+		strings.Join(installmentCols, ","),
+		"loan_id = $1 AND status = $2 ORDER BY week ASC LIMIT 1",
+	)
+
+	installment := models.Installment{}
+	args := []any{
+		loanId,
+		status,
+	}
+
+	tx := utils.SqlxTxFromCtx(ctx)
+	if tx != nil {
+		err = tx.GetContext(ctx, &installment, query, args...)
+	} else {
+		err = r.db.GetContext(ctx, &installment, query, args...)
+	}
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, custerr.ErrDataNotFound
+		}
+		return nil, err
+	}
+
+	return &installment, nil
+
+}
+
+func (r defaultInstallmentsRepository) GetById(ctx context.Context, installmentId uuid.UUID) (*models.Installment, error) {
+	var err error
+	query := fmt.Sprintf(
+		getInstallmentQuery,
+		strings.Join(installmentCols, ","),
+		"installment_id = $1 LIMIT 1",
+	)
+
+	installment := models.Installment{}
+	args := []any{
+		installmentId,
+	}
+
+	tx := utils.SqlxTxFromCtx(ctx)
+	if tx != nil {
+		err = tx.GetContext(ctx, &installment, query, args...)
+	} else {
+		err = r.db.GetContext(ctx, &installment, query, args...)
+	}
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, custerr.ErrDataNotFound
+		}
+		return nil, err
+	}
+
+	return &installment, nil
+}
+
+const updateInstallmentPaymentQuery = `
+	UPDATE
+		installments
+	SET
+		status = $1,
+		paid_at = $2,
+		updated_at = $2
+	WHERE
+		id = $3
+`
+
+func (r defaultInstallmentsRepository) UpdatePayment(ctx context.Context, installmentId uuid.UUID, timestamp time.Time) error {
+	var err error
+	args := []any{
+		constants.INSTALLMENT_STATUS_PAID,
+		timestamp,
+		installmentId,
+	}
+	query := updateInstallmentPaymentQuery
+	tx := utils.SqlxTxFromCtx(ctx)
+	if tx != nil {
+		_, err = tx.ExecContext(ctx, query, args...)
+	} else {
+		_, err = r.db.ExecContext(ctx, query, args...)
+	}
+	return err
 }

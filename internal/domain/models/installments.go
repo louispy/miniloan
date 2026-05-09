@@ -15,7 +15,7 @@ type Installment struct {
 	Status    int        `db:"status"`
 	PaidAt    *time.Time `db:"paid_at"`
 	CreatedBy uuid.UUID  `db:"created_by"`
-	UpdatedBy uuid.UUID  `db:"created_by"`
+	UpdatedBy uuid.UUID  `db:"updated_by"`
 	CreatedAt time.Time  `db:"created_at"`
 	UpdatedAt time.Time  `db:"updated_at"`
 }
