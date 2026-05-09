@@ -70,7 +70,6 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 			DueDate:   dueDate,
 			Week:      int(i + 1), // assuming week is 1-indexed
 			Status:    constants.INSTALLMENT_STATUS_UNPAID,
-			IsFinal:   i == weeks-1,
 			CreatedAt: now,
 			UpdatedAt: now,
 		})
@@ -112,7 +111,6 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 			Status:  installment.Status,
 			DueDate: installment.DueDate.String(),
 			LoanId:  installment.LoanId.String(),
-			IsFinal: installment.IsFinal,
 		})
 	}
 	return &CreateLoanOutput{

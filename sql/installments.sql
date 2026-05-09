@@ -5,7 +5,7 @@ CREATE TABLE installments (
     due_date TIMESTAMP NOT NULL,
     week INT NOT NULL,
     status INT NOT NULL,
-    is_final BOOLEAN NOT NULL,
+    paid_at TIMESTAMP NULL,
     created_by uuid NOT NULL,
     updated_by uuid NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
