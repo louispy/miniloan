@@ -331,3 +331,103 @@ func TestLoanService_GetInstallments(t *testing.T) {
 		})
 	}
 }
+
+func TestLoanService_IsDeliquent(t *testing.T) {
+	err := errors.New("oops")
+
+	okLoanGet := func() (*models.Loan, error) { return &models.Loan{}, nil }
+
+	tests := []struct {
+		name             string
+		loansRepo        repo_mocks.MockLoansRepo
+		installmentsRepo repo_mocks.MockInstallmentRepo
+		wantErr          error
+		wantDeliquent    bool
+	}{
+		{
+			name: "not deliquent below threshold",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetLateCountByLoanIdFn: func() (int, error) { return constants.DELIQUENT_LATE_COUNT - 1, nil },
+			},
+			wantDeliquent: false,
+		},
+		{
+			name: "deliquent at threshold",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetLateCountByLoanIdFn: func() (int, error) { return constants.DELIQUENT_LATE_COUNT, nil },
+			},
+			wantDeliquent: true,
+		},
+		{
+			name: "deliquent above threshold",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetLateCountByLoanIdFn: func() (int, error) { return constants.DELIQUENT_LATE_COUNT + 1, nil },
+			},
+			wantDeliquent: true,
+		},
+		{
+			name: "loan not found",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: func() (*models.Loan, error) { return nil, custerr.ErrDataNotFound },
+			},
+			wantErr: custerr.ErrDataNotFound,
+		},
+		{
+			name: "loan repo fails",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: func() (*models.Loan, error) { return nil, err },
+			},
+			wantErr: err,
+		},
+		{
+			name: "late count fails",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetLateCountByLoanIdFn: func() (int, error) { return 0, err },
+			},
+			wantErr: err,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := NewLoanService(LoanServiceOpts{
+				LoansRepo:        tt.loansRepo,
+				InstallmentsRepo: tt.installmentsRepo,
+				BusinessTZ:       time.UTC,
+			})
+
+			out, err := svc.IsDeliquent(context.Background(), IsDeliquentInput{
+				LoanId:    uuid.New(),
+				Timestamp: time.Now(),
+			})
+
+			if err != tt.wantErr {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantErr != nil {
+				if out != nil {
+					t.Fatalf("expected nil output on error, got %+v", out)
+				}
+				return
+			}
+			if out == nil {
+				t.Fatal("expected output, got nil")
+			}
+			if out.IsDeliquent != tt.wantDeliquent {
+				t.Errorf("IsDeliquent = %v, want %v", out.IsDeliquent, tt.wantDeliquent)
+			}
+		})
+	}
+}
