@@ -1,6 +1,7 @@
 package constants
 
 const LOAN_WEEKS = 50
+const LOAN_INTEREST_RATE = 0.1
 
 const (
 	_ = iota
@@ -8,4 +9,10 @@ const (
 	LOAN_STATUS_APPROVED
 	LOAN_STATUS_DISBURSED
 	LOAN_STATUS_FULLY_PAID
+)
+
+const (
+	_ = iota
+	INSTALLMENT_STATUS_UNPAID
+	INSTALLMENT_STATUS_PAID
 )

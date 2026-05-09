@@ -21,8 +21,7 @@ func (a API) CreateLoanHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	input := services.CreateLoanInput{
-		Principal:    req.Principal,
-		InterestRate: req.InterestRate,
+		Principal: req.Principal,
 	}
 
 	output, err := a.loanService.Create(r.Context(), input)
