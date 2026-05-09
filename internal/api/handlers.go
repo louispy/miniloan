@@ -46,3 +46,27 @@ func (a API) GetOutstanding(rw http.ResponseWriter, r *http.Request) {
 
 	WriteJSONResponse(rw, 200, resp, &message, nil)
 }
+
+func (a API) IsDeliquent(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	uuId, err := uuid.Parse(id)
+	if err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
+	}
+	output, err := a.loanService.IsDeliquent(r.Context(), services.IsDeliquentInput{
+		LoanId:    uuId,
+		Timestamp: time.Now(),
+	})
+	if err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
+	}
+	resp := IsDeliquentResponse{
+		IsDeliquent: output.IsDeliquent,
+	}
+	message := "Successfully get IsDeliquent value"
+
+	WriteJSONResponse(rw, 200, resp, &message, nil)
+}

@@ -35,3 +35,7 @@ type CreateLoanResponse struct {
 type GetOutstandingResponse struct {
 	Amount int64 `json:"amount"`
 }
+
+type IsDeliquentResponse struct {
+	IsDeliquent bool `json:"is_deliquent"`
+}

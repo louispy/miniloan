@@ -41,7 +41,7 @@ func NewLoanService(opts LoanServiceOpts) LoanService {
 }
 
 func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*CreateLoanOutput, error) {
-	now := time.Now()
+	now := time.Now().UTC()
 	interestRate := s.interestRate
 	weeks := s.weeks
 	principal := s.principal
@@ -137,7 +137,23 @@ func (s loanService) GetOutstanding(ctx context.Context, inp GetOutstandingInput
 }
 
 func (s loanService) IsDeliquent(ctx context.Context, inp IsDeliquentInput) (*IsDeliquentOutput, error) {
-	return nil, nil
+	_, err := s.loansRepo.GetById(ctx, inp.LoanId)
+	if err != nil {
+		if err != custerr.ErrDataNotFound {
+			log.Printf("Error retrieving Loan: %v\n", err.Error())
+		}
+		return nil, err
+	}
+
+	lateCount, err := s.installmentsRepo.GetLateCountByLoanId(ctx, inp.LoanId, inp.Timestamp)
+	if err != nil {
+		log.Printf("Error retrieving outstanding sum: %v\n", err.Error())
+		return nil, err
+	}
+
+	return &IsDeliquentOutput{
+		IsDeliquent: lateCount >= constants.DELIQUENT_LATE_COUNT,
+	}, nil
 }
 
 func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*MakePaymentOutput, error) {

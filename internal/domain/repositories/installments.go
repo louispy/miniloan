@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/louispy/miniloan/internal/constants"
 	"github.com/louispy/miniloan/internal/domain/models"
 	"github.com/louispy/miniloan/internal/utils"
 )
@@ -112,4 +114,40 @@ func (r defaultInstallmentsRepository) GetSumByLoanIdAndStatus(ctx context.Conte
 	}
 
 	return total, nil
+}
+
+const getLateInstallmentsCountByLoanIdQuery = `
+	SELECT
+		COUNT(*)
+	FROM
+		installments
+	WHERE
+		loan_id = $1
+		AND status = $2
+		AND due_date < $3
+`
+
+func (r defaultInstallmentsRepository) GetLateCountByLoanId(ctx context.Context, loanId uuid.UUID, cutoffTime time.Time) (int, error) {
+	var (
+		count int
+		err   error
+	)
+
+	args := []any{
+		loanId,
+		constants.INSTALLMENT_STATUS_UNPAID,
+		cutoffTime,
+	}
+	tx := utils.SqlxTxFromCtx(ctx)
+	if tx != nil {
+		err = tx.GetContext(ctx, &count, getLateInstallmentsCountByLoanIdQuery, args...)
+	} else {
+		err = r.db.GetContext(ctx, &count, getLateInstallmentsCountByLoanIdQuery, args...)
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

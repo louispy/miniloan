@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/louispy/miniloan/internal/domain/models"
@@ -19,4 +20,5 @@ type BorrowersRepository interface {
 type InstallmentsRepository interface {
 	CreateMany(ctx context.Context, installments []models.Installment) error
 	GetSumByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) (int64, error)
+	GetLateCountByLoanId(ctx context.Context, loanId uuid.UUID, cutoffTime time.Time) (int, error)
 }
