@@ -44,6 +44,17 @@ type GetOutstandingResponse struct {
 	Amount int64 `json:"amount"`
 }
 
+type GetInstallmentsResponseInstallment struct {
+	Week    int    `json:"week"`
+	Amount  int64  `json:"amount"`
+	Status  int    `json:"status"`
+	DueDate string `json:"due_date"`
+}
+
+type GetInstallmentsResponse struct {
+	Installments []GetInstallmentsResponseInstallment `json:"installments"`
+}
+
 type IsDeliquentResponse struct {
 	IsDeliquent bool `json:"is_deliquent"`
 }

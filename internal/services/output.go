@@ -18,6 +18,18 @@ type GetOutstandingOutput struct {
 	Amount int64
 }
 
+type GetInstallmentsOutputInstallment struct {
+	Week    int
+	Amount  int64
+	Status  int
+	DueDate string
+	LoanId  string
+}
+
+type GetInstallmentsOutput struct {
+	Installments []GetInstallmentsOutputInstallment
+}
+
 type IsDeliquentOutput struct {
 	IsDeliquent bool
 }

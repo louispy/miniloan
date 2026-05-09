@@ -34,6 +34,7 @@ func (a *API) Register() {
 	})
 	a.router.Methods(http.MethodPost).Path("/loans").HandlerFunc(a.CreateLoanHandler)
 	a.router.Methods(http.MethodGet).Path("/loans/{id}/outstanding").HandlerFunc(a.GetOutstanding)
+	a.router.Methods(http.MethodGet).Path("/loans/{id}/installments").HandlerFunc(a.GetInstallments)
 	a.router.Methods(http.MethodGet).Path("/loans/{id}/deliquent").HandlerFunc(a.IsDeliquent)
 	a.router.Methods(http.MethodPost).Path("/loans/{id}/payment").HandlerFunc(a.MakePayment)
 }

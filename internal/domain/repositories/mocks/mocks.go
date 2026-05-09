@@ -26,6 +26,7 @@ type MockInstallmentRepo struct {
 	GetSumByLoanIdAndStatusFn   func() (int64, error)
 	GetLateCountByLoanIdFn      func() (int, error)
 	GetFirstByLoanIdAndStatusFn func() (*models.Installment, error)
+	GetByLoanIdAndStatusFn      func() ([]models.Installment, error)
 	GetByIdFn                   func() (*models.Installment, error)
 	GetByIdForUpdateFn          func() (*models.Installment, error)
 	UpdatePaymentFn             func() error
@@ -45,6 +46,10 @@ func (r MockInstallmentRepo) GetLateCountByLoanId(ctx context.Context, loanId uu
 
 func (r MockInstallmentRepo) GetFirstByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) (*models.Installment, error) {
 	return r.GetFirstByLoanIdAndStatusFn()
+}
+
+func (r MockInstallmentRepo) GetByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) ([]models.Installment, error) {
+	return r.GetByLoanIdAndStatusFn()
 }
 
 func (r MockInstallmentRepo) GetById(ctx context.Context, installmentId uuid.UUID) (*models.Installment, error) {

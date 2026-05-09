@@ -12,6 +12,11 @@ type GetOutstandingInput struct {
 	LoanId uuid.UUID
 }
 
+type GetInstallmentsInput struct {
+	LoanId uuid.UUID
+	Status int
+}
+
 type IsDeliquentInput struct {
 	Timestamp time.Time
 	LoanId    uuid.UUID

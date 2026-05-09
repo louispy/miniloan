@@ -2,11 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/louispy/miniloan/internal/constants"
 	"github.com/louispy/miniloan/internal/services"
 )
 
@@ -53,6 +55,53 @@ func (a API) GetOutstanding(rw http.ResponseWriter, r *http.Request) {
 		Amount: output.Amount,
 	}
 	message := "Successfully get outstanding amount"
+
+	WriteJSONResponse(rw, 200, resp, &message, nil)
+}
+
+func (a API) GetInstallments(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	uuId, err := uuid.Parse(id)
+	if err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
+	}
+
+	status := 0
+	switch r.URL.Query().Get("status") {
+	case "paid":
+		status = constants.INSTALLMENT_STATUS_PAID
+	case "unpaid":
+		status = constants.INSTALLMENT_STATUS_UNPAID
+	case "":
+	default:
+		WriteJSONResponse(rw, 400, nil, nil, errors.New("invalid status filter"))
+		return
+	}
+
+	output, err := a.loanService.GetInstallments(r.Context(), services.GetInstallmentsInput{
+		LoanId: uuId,
+		Status: status,
+	})
+	if err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
+	}
+
+	installments := make([]GetInstallmentsResponseInstallment, 0, len(output.Installments))
+	for _, ins := range output.Installments {
+		installments = append(installments, GetInstallmentsResponseInstallment{
+			Week:    ins.Week,
+			Amount:  ins.Amount,
+			Status:  ins.Status,
+			DueDate: ins.DueDate,
+		})
+	}
+	resp := GetInstallmentsResponse{
+		Installments: installments,
+	}
+	message := "Successfully get installments"
 
 	WriteJSONResponse(rw, 200, resp, &message, nil)
 }

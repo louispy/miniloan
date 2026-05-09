@@ -146,6 +146,35 @@ func (s loanService) GetOutstanding(ctx context.Context, inp GetOutstandingInput
 	return &GetOutstandingOutput{Amount: amount}, nil
 }
 
+func (s loanService) GetInstallments(ctx context.Context, inp GetInstallmentsInput) (*GetInstallmentsOutput, error) {
+	_, err := s.loansRepo.GetById(ctx, inp.LoanId)
+	if err != nil {
+		if err != custerr.ErrDataNotFound {
+			log.Printf("Error retrieving Loan: %v\n", err.Error())
+		}
+		return nil, err
+	}
+
+	installments, err := s.installmentsRepo.GetByLoanIdAndStatus(ctx, inp.LoanId, inp.Status)
+	if err != nil {
+		log.Printf("Error retrieving installments: %v\n", err.Error())
+		return nil, err
+	}
+
+	out := []GetInstallmentsOutputInstallment{}
+	for _, installment := range installments {
+		out = append(out, GetInstallmentsOutputInstallment{
+			Week:    installment.Week,
+			Amount:  installment.Amount,
+			Status:  installment.Status,
+			DueDate: installment.DueDate.String(),
+			LoanId:  installment.LoanId.String(),
+		})
+	}
+
+	return &GetInstallmentsOutput{Installments: out}, nil
+}
+
 func (s loanService) IsDeliquent(ctx context.Context, inp IsDeliquentInput) (*IsDeliquentOutput, error) {
 	_, err := s.loansRepo.GetById(ctx, inp.LoanId)
 	if err != nil {

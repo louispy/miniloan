@@ -251,6 +251,30 @@ func (r defaultInstallmentsRepository) UpdatePayment(ctx context.Context, instal
 	return err
 }
 
+func (r defaultInstallmentsRepository) GetByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) ([]models.Installment, error) {
+	var err error
+	whereClause := "loan_id = $1"
+	args := []any{loanId}
+	if status > 0 {
+		whereClause += " AND status = $2"
+		args = append(args, status)
+	}
+	whereClause += " ORDER BY week ASC"
+	query := fmt.Sprintf(getInstallmentQuery, strings.Join(installmentCols, ","), whereClause)
+
+	installments := []models.Installment{}
+	tx := utils.SqlxTxFromCtx(ctx)
+	if tx != nil {
+		err = tx.SelectContext(ctx, &installments, query, args...)
+	} else {
+		err = r.db.SelectContext(ctx, &installments, query, args...)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return installments, nil
+}
+
 func (r defaultInstallmentsRepository) GetByIdForUpdate(ctx context.Context, installmentId uuid.UUID) (*models.Installment, error) {
 	var err error
 	query := fmt.Sprintf(
