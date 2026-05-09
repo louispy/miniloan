@@ -199,7 +199,7 @@ func (r defaultInstallmentsRepository) GetById(ctx context.Context, installmentI
 	query := fmt.Sprintf(
 		getInstallmentQuery,
 		strings.Join(installmentCols, ","),
-		"installment_id = $1 LIMIT 1",
+		"id = $1 LIMIT 1",
 	)
 
 	installment := models.Installment{}
@@ -249,4 +249,32 @@ func (r defaultInstallmentsRepository) UpdatePayment(ctx context.Context, instal
 		_, err = r.db.ExecContext(ctx, query, args...)
 	}
 	return err
+}
+
+func (r defaultInstallmentsRepository) GetByIdForUpdate(ctx context.Context, installmentId uuid.UUID) (*models.Installment, error) {
+	var err error
+	query := fmt.Sprintf(
+		getInstallmentQuery,
+		strings.Join(installmentCols, ","),
+		"id = $1 LIMIT 1 FOR UPDATE",
+	)
+
+	installment := models.Installment{}
+	args := []any{
+		installmentId,
+	}
+
+	tx := utils.SqlxTxFromCtx(ctx)
+	if tx == nil {
+		return nil, custerr.ErrNoTransaction
+	}
+	err = tx.GetContext(ctx, &installment, query, args...)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, custerr.ErrDataNotFound
+		}
+		return nil, err
+	}
+
+	return &installment, nil
 }

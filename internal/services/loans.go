@@ -107,7 +107,8 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 		return nil, err
 	}
 
-	if err := s.txManager.Commit(txCtx); err != nil {
+	err = s.txManager.Commit(txCtx)
+	if err != nil {
 		log.Printf("Error committing transaction: %v\n", err.Error())
 		return nil, err
 	}
@@ -176,34 +177,6 @@ func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*Ma
 		return nil, err
 	}
 
-	// InstallmentId not in task spec.
-	// If InstallmentId is not provided, defaults to getting earliest unpaid installment
-	var installment *models.Installment
-	if inp.InstallmentId == uuid.Nil {
-		installment, err = s.installmentsRepo.GetFirstByLoanIdAndStatus(ctx, inp.LoanId, constants.INSTALLMENT_STATUS_UNPAID)
-	} else {
-		installment, err = s.installmentsRepo.GetById(ctx, inp.InstallmentId)
-	}
-
-	if err != nil {
-		if err != custerr.ErrDataNotFound {
-			log.Printf("Error retrieving Loan: %v\n", err.Error())
-		}
-		return nil, err
-	}
-
-	if installment == nil {
-		return nil, custerr.ErrDataNotFound
-	}
-
-	if installment.Status != constants.INSTALLMENT_STATUS_UNPAID {
-		return nil, errors.New("invalid installment status")
-	}
-
-	if inp.Amount != installment.Amount {
-		return nil, errors.New("invalid payment amount")
-	}
-
 	txCtx, err := s.txManager.Begin(ctx)
 	if err != nil {
 		log.Printf("error starting transaction: %s", err.Error())
@@ -214,6 +187,26 @@ func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*Ma
 			s.txManager.Rollback(txCtx)
 		}
 	}()
+
+	installment, err := s.installmentsRepo.GetByIdForUpdate(txCtx, inp.InstallmentId)
+	if err != nil {
+		if err != custerr.ErrDataNotFound {
+			log.Printf("Error retrieving installment: %v\n", err.Error())
+		}
+		return nil, err
+	}
+
+	if installment.LoanId != inp.LoanId {
+		return nil, errors.New("invalid installment")
+	}
+
+	if installment.Status != constants.INSTALLMENT_STATUS_UNPAID {
+		return nil, errors.New("invalid installment status")
+	}
+
+	if inp.Amount != installment.Amount {
+		return nil, errors.New("invalid payment amount")
+	}
 
 	now := time.Now().UTC()
 	_, err = s.paymentsRepo.Create(txCtx, models.Payment{
@@ -233,7 +226,8 @@ func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*Ma
 		return nil, err
 	}
 
-	if err := s.txManager.Commit(txCtx); err != nil {
+	err = s.txManager.Commit(txCtx)
+	if err != nil {
 		log.Printf("Error committing transaction: %v\n", err.Error())
 		return nil, err
 	}

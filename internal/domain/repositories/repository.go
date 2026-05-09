@@ -23,6 +23,7 @@ type InstallmentsRepository interface {
 	GetLateCountByLoanId(ctx context.Context, loanId uuid.UUID, cutoffTime time.Time) (int, error)
 	GetFirstByLoanIdAndStatus(ctx context.Context, loanId uuid.UUID, status int) (*models.Installment, error)
 	GetById(ctx context.Context, installmentId uuid.UUID) (*models.Installment, error)
+	GetByIdForUpdate(ctx context.Context, installmentId uuid.UUID) (*models.Installment, error)
 	UpdatePayment(ctx context.Context, installmentId uuid.UUID, timestamp time.Time) error
 }
 

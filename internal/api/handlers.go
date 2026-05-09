@@ -92,13 +92,10 @@ func (a API) MakePayment(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var installmentId uuid.UUID
-	if req.InstallmentId != "" {
-		installmentId, err = uuid.Parse(req.InstallmentId)
-		if err != nil {
-			WriteJSONResponse(rw, 400, nil, nil, err)
-			return
-		}
+	installmentId, err := uuid.Parse(req.InstallmentId)
+	if err != nil {
+		WriteJSONResponse(rw, 400, nil, nil, err)
+		return
 	}
 
 	output, err := a.loanService.MakePayment(r.Context(), services.MakePaymentInput{
