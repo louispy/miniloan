@@ -1,7 +1,7 @@
 CREATE TABLE installments (
     id uuid NOT NULL PRIMARY KEY,
     loan_id uuid NOT NULL,
-    amount DECIMAL(18,2) NOT NULL,
+    amount BIGINT NOT NULL,
     due_date TIMESTAMP NOT NULL,
     week INT NOT NULL,
     status INT NOT NULL,

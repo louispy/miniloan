@@ -2,7 +2,7 @@ package services
 
 type CreateLoanOutputInstallment struct {
 	Week    int
-	Amount  float64
+	Amount  int64
 	Status  int
 	DueDate string
 	LoanId  string

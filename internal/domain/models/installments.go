@@ -9,7 +9,7 @@ import (
 type Installment struct {
 	Id      uuid.UUID `db:"id"`
 	LoanId  uuid.UUID `db:"loan_id"`
-	Amount  float64   `db:"amount"`
+	Amount  int64     `db:"amount"`
 	DueDate time.Time `db:"due_date"`
 	Week    int       `db:"week"`
 	Status  int       `db:"status"`

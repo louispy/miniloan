@@ -52,29 +52,19 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
-	principal := float64(loanInput.Principal)
-	total := principal + (principal * interestRate)
-	repaymentAmountPerWeek := total / float64(weeks)
-
-	// Assume rounding to nearest whole integer
-	repaymentAmountPerWeekRounded := math.Round(repaymentAmountPerWeek)
-
-	// Assume that the final week repayment amount should fill the rounding gap
-	remainderAmount := total - (repaymentAmountPerWeekRounded * float64(weeks-1))
+	principal := loanInput.Principal
+	total := principal + int64(math.Round(float64(principal)*interestRate))
+	repaymentAmountPerWeek := total / int64(weeks)
 
 	currentDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
 	installments := []models.Installment{}
 	for i := range weeks {
-		amount := repaymentAmountPerWeekRounded
-		if i == weeks-1 {
-			amount = remainderAmount
-		}
 		dueDate := currentDate.AddDate(0, 0, (int(i)+1)*7)
 		installments = append(installments, models.Installment{
 			Id:        uuid.New(),
 			LoanId:    loanId,
-			Amount:    amount,
+			Amount:    repaymentAmountPerWeek,
 			DueDate:   dueDate,
 			Week:      int(i + 1), // assuming week is 1-indexed
 			Status:    constants.INSTALLMENT_STATUS_UNPAID,
