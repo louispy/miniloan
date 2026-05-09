@@ -1,7 +1,11 @@
 package constants
 
+// hardcoded per spec
+// should there be more loan configurations,
+// a new table (i.e. loan_plans) can be introduced to store loan configs.
 const LOAN_WEEKS = 5
 const LOAN_INTEREST_RATE = 0.1
+const LOAN_PRINCIPAL = 5000000
 
 const (
 	_ = iota

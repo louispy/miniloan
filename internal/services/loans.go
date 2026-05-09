@@ -19,6 +19,7 @@ type loanService struct {
 	txManager        database.TxManager
 	weeks            int
 	interestRate     float64
+	principal        int64
 }
 
 type LoanServiceOpts struct {
@@ -34,6 +35,7 @@ func NewLoanService(opts LoanServiceOpts) LoanService {
 		txManager:        opts.TxManager,
 		weeks:            constants.LOAN_WEEKS,
 		interestRate:     constants.LOAN_INTEREST_RATE,
+		principal:        constants.LOAN_PRINCIPAL,
 	}
 }
 
@@ -41,18 +43,18 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 	now := time.Now()
 	interestRate := s.interestRate
 	weeks := s.weeks
+	principal := s.principal
 	// for scope simplicity, loans are approved and disbursed immediately
 	loanId := uuid.New()
 	loan := models.Loan{
 		Id:           loanId,
-		Principal:    loanInput.Principal,
+		Principal:    principal,
 		InterestRate: interestRate,
 		Weeks:        int64(weeks),
 		Status:       constants.LOAN_STATUS_APPROVED,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
-	principal := loanInput.Principal
 	total := principal + int64(math.Round(float64(principal)*interestRate))
 	repaymentAmountPerWeek := total / int64(weeks)
 
