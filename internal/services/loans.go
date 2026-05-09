@@ -21,12 +21,14 @@ type loanService struct {
 	weeks            int
 	interestRate     float64
 	principal        int64
+	businessTZ       *time.Location
 }
 
 type LoanServiceOpts struct {
 	LoansRepo        repositories.LoansRepository
 	InstallmentsRepo repositories.InstallmentsRepository
 	TxManager        database.TxManager
+	BusinessTZ       *time.Location
 }
 
 func NewLoanService(opts LoanServiceOpts) LoanService {
@@ -37,6 +39,7 @@ func NewLoanService(opts LoanServiceOpts) LoanService {
 		weeks:            constants.LOAN_WEEKS,
 		interestRate:     constants.LOAN_INTEREST_RATE,
 		principal:        constants.LOAN_PRINCIPAL,
+		businessTZ:       opts.BusinessTZ,
 	}
 }
 
@@ -59,11 +62,12 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 	total := principal + int64(math.Round(float64(principal)*interestRate))
 	repaymentAmountPerWeek := total / int64(weeks)
 
-	currentDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	nowBiz := now.In(s.businessTZ)
+	today := time.Date(nowBiz.Year(), nowBiz.Month(), nowBiz.Day(), 0, 0, 0, 0, s.businessTZ)
 
 	installments := []models.Installment{}
 	for i := range weeks {
-		dueDate := currentDate.AddDate(0, 0, (int(i)+1)*7)
+		dueDate := today.AddDate(0, 0, (int(i)+1)*7)
 		installments = append(installments, models.Installment{
 			Id:        uuid.New(),
 			LoanId:    loanId,
@@ -145,7 +149,10 @@ func (s loanService) IsDeliquent(ctx context.Context, inp IsDeliquentInput) (*Is
 		return nil, err
 	}
 
-	lateCount, err := s.installmentsRepo.GetLateCountByLoanId(ctx, inp.LoanId, inp.Timestamp)
+	nowBiz := inp.Timestamp.In(s.businessTZ)
+	todayBiz := time.Date(nowBiz.Year(), nowBiz.Month(), nowBiz.Day(), 0, 0, 0, 0, s.businessTZ)
+
+	lateCount, err := s.installmentsRepo.GetLateCountByLoanId(ctx, inp.LoanId, todayBiz)
 	if err != nil {
 		log.Printf("Error retrieving outstanding sum: %v\n", err.Error())
 		return nil, err

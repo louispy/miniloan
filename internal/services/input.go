@@ -11,8 +11,7 @@ type CreateLoanInput struct {
 }
 
 type GetOutstandingInput struct {
-	Timestamp time.Time
-	LoanId    uuid.UUID
+	LoanId uuid.UUID
 }
 
 type IsDeliquentInput struct {

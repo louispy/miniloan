@@ -32,8 +32,7 @@ func (a API) GetOutstanding(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	output, err := a.loanService.GetOutstanding(r.Context(), services.GetOutstandingInput{
-		LoanId:    uuId,
-		Timestamp: time.Now(),
+		LoanId: uuId,
 	})
 	if err != nil {
 		WriteJSONResponse(rw, 400, nil, nil, err)

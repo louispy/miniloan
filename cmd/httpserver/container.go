@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/louispy/miniloan/internal/api"
@@ -16,7 +17,8 @@ type Container struct {
 }
 
 type Config struct {
-	DB database.Config `envPrefix:"DB_"`
+	DB                    database.Config `envPrefix:"DB_"`
+	BusinessTZOffsetHours int             `env:"BUSINESS_TZ_OFFSET_HOURS"`
 }
 
 func NewConfig() *Config {
@@ -37,10 +39,12 @@ func NewContainer() *Container {
 	loanRepo := repositories.NewLoansRepository(repositories.LoanRepoOpts{DB: db})
 	installmentRepo := repositories.NewInstallmentsRepository(repositories.InstallmentRepoOpts{DB: db})
 	txManager := database.NewTxManager(database.TxManagerOpts{DB: db})
+	businessTZ := time.FixedZone("BIZ", cfg.BusinessTZOffsetHours*3600)
 	loanService := services.NewLoanService(services.LoanServiceOpts{
 		LoansRepo:        loanRepo,
 		InstallmentsRepo: installmentRepo,
 		TxManager:        txManager,
+		BusinessTZ:       businessTZ,
 	})
 	api := appAPI.NewAPI(appAPI.Opts{
 		LoanService: loanService,
