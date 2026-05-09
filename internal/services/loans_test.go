@@ -219,3 +219,115 @@ func TestLoanService_GetOutstanding(t *testing.T) {
 		})
 	}
 }
+
+func TestLoanService_GetInstallments(t *testing.T) {
+	err := errors.New("oops")
+
+	loanId := uuid.New()
+	okLoanGet := func() (*models.Loan, error) { return &models.Loan{Id: loanId}, nil }
+
+	dueDate := time.Date(2026, 5, 17, 0, 0, 0, 0, time.UTC)
+	rows := []models.Installment{
+		{Id: uuid.New(), LoanId: loanId, Week: 1, Amount: 110000, Status: constants.INSTALLMENT_STATUS_UNPAID, DueDate: dueDate},
+		{Id: uuid.New(), LoanId: loanId, Week: 2, Amount: 110000, Status: constants.INSTALLMENT_STATUS_PAID, DueDate: dueDate.AddDate(0, 0, 7)},
+	}
+
+	tests := []struct {
+		name             string
+		loansRepo        repo_mocks.MockLoansRepo
+		installmentsRepo repo_mocks.MockInstallmentRepo
+		wantErr          error
+		wantLen          int
+	}{
+		{
+			name: "ok with rows",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByLoanIdAndStatusFn: func() ([]models.Installment, error) { return rows, nil },
+			},
+			wantLen: 2,
+		},
+		{
+			name: "ok empty",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByLoanIdAndStatusFn: func() ([]models.Installment, error) { return []models.Installment{}, nil },
+			},
+			wantLen: 0,
+		},
+		{
+			name: "loan not found",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: func() (*models.Loan, error) { return nil, custerr.ErrDataNotFound },
+			},
+			wantErr: custerr.ErrDataNotFound,
+		},
+		{
+			name: "loan repo fails",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: func() (*models.Loan, error) { return nil, err },
+			},
+			wantErr: err,
+		},
+		{
+			name: "installments repo fails",
+			loansRepo: repo_mocks.MockLoansRepo{
+				GetByIdFn: okLoanGet,
+			},
+			installmentsRepo: repo_mocks.MockInstallmentRepo{
+				GetByLoanIdAndStatusFn: func() ([]models.Installment, error) { return nil, err },
+			},
+			wantErr: err,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := NewLoanService(LoanServiceOpts{
+				LoansRepo:        tt.loansRepo,
+				InstallmentsRepo: tt.installmentsRepo,
+				BusinessTZ:       time.UTC,
+			})
+
+			out, err := svc.GetInstallments(context.Background(), GetInstallmentsInput{LoanId: loanId})
+
+			if err != tt.wantErr {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantErr != nil {
+				if out != nil {
+					t.Fatalf("expected nil output on error, got %+v", out)
+				}
+				return
+			}
+			if out == nil {
+				t.Fatal("expected output, got nil")
+			}
+			if len(out.Installments) != tt.wantLen {
+				t.Fatalf("installments len = %d, want %d", len(out.Installments), tt.wantLen)
+			}
+			for i, ins := range out.Installments {
+				src := rows[i]
+				if ins.Week != src.Week {
+					t.Errorf("installment[%d].Week = %d, want %d", i, ins.Week, src.Week)
+				}
+				if ins.Amount != src.Amount {
+					t.Errorf("installment[%d].Amount = %d, want %d", i, ins.Amount, src.Amount)
+				}
+				if ins.Status != src.Status {
+					t.Errorf("installment[%d].Status = %d, want %d", i, ins.Status, src.Status)
+				}
+				if ins.DueDate != src.DueDate.String() {
+					t.Errorf("installment[%d].DueDate = %s, want %s", i, ins.DueDate, src.DueDate.String())
+				}
+				if ins.LoanId != loanId.String() {
+					t.Errorf("installment[%d].LoanId = %s, want %s", i, ins.LoanId, loanId.String())
+				}
+			}
+		})
+	}
+}
