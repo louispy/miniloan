@@ -1,6 +1,7 @@
 package services
 
 type CreateLoanOutputInstallment struct {
+	Id      string
 	Week    int
 	Amount  int64
 	Status  int
@@ -19,6 +20,7 @@ type GetOutstandingOutput struct {
 }
 
 type GetInstallmentsOutputInstallment struct {
+	Id      string
 	Week    int
 	Amount  int64
 	Status  int

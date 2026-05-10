@@ -21,6 +21,7 @@ func (a API) CreateLoanHandler(rw http.ResponseWriter, r *http.Request) {
 	installments := make([]CreateLoanResponseInstallment, 0, len(output.Installments))
 	for _, ins := range output.Installments {
 		installments = append(installments, CreateLoanResponseInstallment{
+			Id:      ins.Id,
 			Week:    ins.Week,
 			Amount:  ins.Amount,
 			Status:  ins.Status,
@@ -92,6 +93,7 @@ func (a API) GetInstallments(rw http.ResponseWriter, r *http.Request) {
 	installments := make([]GetInstallmentsResponseInstallment, 0, len(output.Installments))
 	for _, ins := range output.Installments {
 		installments = append(installments, GetInstallmentsResponseInstallment{
+			Id:      ins.Id,
 			Week:    ins.Week,
 			Amount:  ins.Amount,
 			Status:  ins.Status,
