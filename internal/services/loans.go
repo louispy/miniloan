@@ -116,6 +116,7 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 	outputInstallments := []CreateLoanOutputInstallment{}
 	for _, installment := range installments {
 		outputInstallments = append(outputInstallments, CreateLoanOutputInstallment{
+			Id:      installment.Id.String(),
 			Week:    installment.Week,
 			Amount:  installment.Amount,
 			Status:  installment.Status,
@@ -164,6 +165,7 @@ func (s loanService) GetInstallments(ctx context.Context, inp GetInstallmentsInp
 	out := []GetInstallmentsOutputInstallment{}
 	for _, installment := range installments {
 		out = append(out, GetInstallmentsOutputInstallment{
+			Id:      installment.Id.String(),
 			Week:    installment.Week,
 			Amount:  installment.Amount,
 			Status:  installment.Status,
@@ -212,8 +214,9 @@ func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*Ma
 		log.Printf("error starting transaction: %s", err.Error())
 		return nil, err
 	}
+	committed := false
 	defer func() {
-		if err != nil {
+		if !committed {
 			s.txManager.Rollback(txCtx)
 		}
 	}()
@@ -227,15 +230,18 @@ func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*Ma
 	}
 
 	if installment.LoanId != inp.LoanId {
-		return nil, errors.New("invalid installment")
+		err = errors.New("invalid installment")
+		return nil, err
 	}
 
 	if installment.Status != constants.INSTALLMENT_STATUS_UNPAID {
-		return nil, errors.New("invalid installment status")
+		err = errors.New("invalid installment status")
+		return nil, err
 	}
 
 	if inp.Amount != installment.Amount {
-		return nil, errors.New("invalid payment amount")
+		err = errors.New("invalid payment amount")
+		return nil, err
 	}
 
 	now := time.Now().UTC()
@@ -256,11 +262,11 @@ func (s loanService) MakePayment(ctx context.Context, inp MakePaymentInput) (*Ma
 		return nil, err
 	}
 
-	err = s.txManager.Commit(txCtx)
-	if err != nil {
+	if err = s.txManager.Commit(txCtx); err != nil {
 		log.Printf("Error committing transaction: %v\n", err.Error())
 		return nil, err
 	}
+	committed = true
 
 	return &MakePaymentOutput{InstallmentId: installment.Id.String()}, nil
 }
