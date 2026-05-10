@@ -119,7 +119,7 @@ func (s loanService) Create(ctx context.Context, loanInput CreateLoanInput) (*Cr
 			Week:    installment.Week,
 			Amount:  installment.Amount,
 			Status:  installment.Status,
-			DueDate: installment.DueDate.String(),
+			DueDate: installment.DueDate.Format("2006-01-02 15:04:05 -0700"),
 			LoanId:  installment.LoanId.String(),
 		})
 	}
@@ -167,7 +167,7 @@ func (s loanService) GetInstallments(ctx context.Context, inp GetInstallmentsInp
 			Week:    installment.Week,
 			Amount:  installment.Amount,
 			Status:  installment.Status,
-			DueDate: installment.DueDate.String(),
+			DueDate: installment.DueDate.Format("2006-01-02 15:04:05 -0700"),
 			LoanId:  installment.LoanId.String(),
 		})
 	}

@@ -321,8 +321,9 @@ func TestLoanService_GetInstallments(t *testing.T) {
 				if ins.Status != src.Status {
 					t.Errorf("installment[%d].Status = %d, want %d", i, ins.Status, src.Status)
 				}
-				if ins.DueDate != src.DueDate.String() {
-					t.Errorf("installment[%d].DueDate = %s, want %s", i, ins.DueDate, src.DueDate.String())
+				want := src.DueDate.Format("2006-01-02 15:04:05 -0700")
+				if ins.DueDate != want {
+					t.Errorf("installment[%d].DueDate = %s, want %s", i, ins.DueDate, want)
 				}
 				if ins.LoanId != loanId.String() {
 					t.Errorf("installment[%d].LoanId = %s, want %s", i, ins.LoanId, loanId.String())
