@@ -1,4 +1,4 @@
-CREATE TABLE installments (
+CREATE TABLE IF NOT EXISTS installments (
     id uuid NOT NULL PRIMARY KEY,
     loan_id uuid NOT NULL,
     amount BIGINT NOT NULL,
@@ -12,5 +12,5 @@ CREATE TABLE installments (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_installments_loan_status_duedate
+CREATE INDEX IF NOT EXISTS idx_installments_loan_status_duedate
     ON installments (loan_id, status, due_date);

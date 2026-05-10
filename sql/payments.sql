@@ -1,4 +1,4 @@
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id uuid NOT NULL PRIMARY KEY,
     amount bigint NOT NULL,
     installment_id uuid NOT NULL UNIQUE,

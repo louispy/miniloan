@@ -40,7 +40,7 @@ func NewContainer() *Container {
 	installmentRepo := repositories.NewInstallmentsRepository(repositories.InstallmentRepoOpts{DB: db})
 	paymentRepo := repositories.NewPaymentsRepository(repositories.PaymentRepoOpts{DB: db})
 	txManager := database.NewTxManager(database.TxManagerOpts{DB: db})
-	businessTZ := time.FixedZone("BIZ", cfg.BusinessTZOffsetHours*3600)
+	businessTZ := time.FixedZone("", cfg.BusinessTZOffsetHours*3600)
 	loanService := services.NewLoanService(services.LoanServiceOpts{
 		LoansRepo:        loanRepo,
 		InstallmentsRepo: installmentRepo,

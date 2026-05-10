@@ -1,4 +1,4 @@
-CREATE TABLE loans (
+CREATE TABLE IF NOT EXISTS loans (
     id uuid NOT NULL PRIMARY KEY,
     principal BIGINT NOT NULL,
     interest_rate DECIMAL(18,2) NOT NULL,
